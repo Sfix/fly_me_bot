@@ -1,0 +1,59 @@
+{
+    "type": "AdaptiveCard",
+    "body": [
+        {
+            "type": "TextBlock",
+            "size": "ExtraLarge",
+            "weight": "Bolder",
+            "horizontalAlignment" : "center",
+            "text": "${title}"
+        },
+        {
+            "type": "Image",
+            "url": "https://user.oc-static.com/upload/2019/10/24/15719199766568_Capture%20d%E2%80%99e%CC%81cran%202019-10-24%20a%CC%80%2014.14.41.png",
+            "horizontalAlignment" : "center"
+        },
+        {
+            "type": "TextBlock",
+            "text": "${sentences.line_1}",
+            "wrap": true
+        },
+        {
+            "type": "TextBlock",
+            "text": "${sentences.line_2}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "   ${sentences.line_3}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "   ${sentences.line_4}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "   ${sentences.line_5}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "   ${sentences.line_6}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "   ${sentences.line_7}",
+            "wrap":true
+        },
+        {
+            "type": "TextBlock",
+            "text": "${sentences.line_8}",
+            "wrap":true
+        }
+    ],
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.3"
+}
