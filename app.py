@@ -109,6 +109,7 @@ APP.router.add_post("/api/alive", alive)
 
 
 if __name__ == "__main__":
+    """Launch the app."""
     try:
         web.run_app(APP, host=f"{os.environ['ServiceURL']}", port=CONFIG.PORT)
     except Exception as error:
