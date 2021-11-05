@@ -103,9 +103,9 @@ def alive(req: Request) -> Response:
     return Response(status= HTTPStatus.OK)
 
 
-APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
-APP.router.add_post("/api/messages", messages)
-APP.router.add_post("/api/alive", alive)
+app = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
+app.router.add_post("/api/messages", messages)
+app.router.add_post("/api/alive", alive)
 
 
 if __name__ == "__main__":
