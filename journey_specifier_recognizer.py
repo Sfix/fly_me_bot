@@ -20,6 +20,7 @@ class Journey_specifier_recognizer(Recognizer):
     Args:
         Recognizer (botbuilder.core.Recognizer): Recognizer
     """
+    
     def __init__(
         self, configuration: DefaultConfig, telemetry_client: BotTelemetryClient = None
     ):
