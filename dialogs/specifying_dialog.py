@@ -13,7 +13,7 @@ from botbuilder.dialogs.prompts import (
                                         PromptValidatorContext,
 )
 from botbuilder.core import MessageFactory, BotTelemetryClient, NullTelemetryClient
-from sample_21.journey_details import Journey_details
+from journey_details import Journey_details
 
 from shared_code.constants.luis_app import LUIS_APPS
 from .cancel_and_help_dialog import CancelAndHelpDialog
