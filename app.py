@@ -98,7 +98,7 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
-def alive() -> Response:
+def alive(req: Request) -> Response:
     """Answer the ping to show the app is still healthy."""
     return Response(status= HTTPStatus.OK)
 
@@ -106,7 +106,7 @@ def init_func(argv):
     """Create the routes to the different features."""
     APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
     APP.router.add_post("/api/messages", messages)
-    APP.router.add_get(path= "/api/alive", handler= alive, allow_head= False)
+    APP.add_routes([web.get('/health_check', alive)])
     return APP
 
 
