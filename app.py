@@ -106,7 +106,7 @@ def init_func(argv):
     """Create the routes to the different features."""
     APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
     APP.router.add_post("/api/messages", messages)
-    APP.router.add_get("/api/alive", alive)
+    APP.router.add_get(path= "/api/alive", handler= alive, allow_head= False)
     return APP
 
 
