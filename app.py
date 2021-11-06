@@ -98,7 +98,7 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
-def alive(req: Request) -> Response:
+def alive() -> Response:
     """Answer the ping to show the app is still healthy."""
     return Response(status= HTTPStatus.OK)
 
