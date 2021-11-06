@@ -15,6 +15,11 @@ import sys
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
 
+import logging
+logger = logging.getLogger("main")
+logger.setLevel(logging.INFO)
+logger.info("Je suis on")
+
 from http import HTTPStatus
 
 from aiohttp import web
@@ -100,6 +105,7 @@ async def messages(req: Request) -> Response:
 
 def alive(req: Request) -> Response:
     """Answer the ping to show the app is still healthy."""
+    logger.info(f"alive avec {req}")
     return Response(status= HTTPStatus.OK)
 
 def init_func(argv):
