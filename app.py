@@ -102,15 +102,18 @@ def alive(req: Request) -> Response:
     """Answer the ping to show the app is still healthy."""
     return Response(status= HTTPStatus.OK)
 
-
-app = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
-app.router.add_post("/api/messages", messages)
-app.router.add_post("/api/alive", alive)
+def init_func(argv):
+    APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
+    APP.router.add_post("/api/messages", messages)
+    APP.router.add_post("/api/alive", alive)
+    return APP
 
 
 if __name__ == "__main__":
     """Launch the app."""
+    APP = init_func(None)
+
     try:
-        web.run_app(app, host=f"{os.environ['ServiceURL']}", port=CONFIG.PORT)
+        web.run_app(APP, host=f"{os.environ['ServiceURL']}", port=CONFIG.PORT)
     except Exception as error:
         raise error
