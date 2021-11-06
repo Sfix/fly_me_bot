@@ -103,9 +103,10 @@ def alive(req: Request) -> Response:
     return Response(status= HTTPStatus.OK)
 
 def init_func(argv):
+    """Create the routes to the different features."""
     APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
     APP.router.add_post("/api/messages", messages)
-    APP.router.add_post("/api/alive", alive)
+    APP.add_routes([web.get("/api/alive", alive)])
     return APP
 
 
