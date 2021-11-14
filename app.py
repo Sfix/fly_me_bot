@@ -10,19 +10,36 @@ This bot demonstrates the following:
 - Handle user interruptions for such things as `Help` or `Cancel`.
 - Prompt for and validate requests for information from the user.
 """
+from dotenv import load_dotenv
+# The notebook is not in the root of the apps. So we need to provide the path
+# to the ".env"
+load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Sciences - Ingenieur IA\\10e projet\\Deliverables')
+
 import os
 import sys
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
 
 import logging
-logger = logging.getLogger("main")
-logger.setLevel(logging.INFO)
-logger.info("Je suis on")
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+logger = logging.getLogger(__name__)
+logger.addHandler(
+                    AzureLogHandler(
+                                    connection_string= "InstrumentationKey=" \
+                        + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
+                        +                               "IngestionEndpoint=" \
+                        + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+                    )
+)
+properties = {'custom_dimensions': {'key_1': 'value_1', 'key_2': 'value_2'}}
+
+# Use properties in logging statements
+logger.warning('action', extra=properties)
 
 from http import HTTPStatus
 
 from aiohttp import web
+from aiohttp.web import middleware
 from aiohttp.web import Request, Response, json_response
 from botbuilder.core import (
     BotFrameworkAdapterSettings,
@@ -78,6 +95,8 @@ DIALOG = MainDialog(RECOGNIZER, SPECIFYING_DIALOG, telemetry_client=TELEMETRY_CL
 BOT = DialogAndWelcomeBot(CONVERSATION_STATE, USER_STATE, DIALOG, TELEMETRY_CLIENT)
 
 
+
+
 # Listen for incoming requests on /api/messages.
 async def messages(req: Request) -> Response:
     """Handle the messages received from user.
@@ -103,14 +122,25 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
-def alive(req: web.Request) -> Response:
+def on_prepare(request, response):
+    pass 
+    # response.headers['My-Header'] = 'value'
+
+
+@middleware
+async def alive(request, handler) -> Response:
     """Answer the ping to show the app is still healthy."""
-    logger.info(f"alive avec {req}")
-    return Response(status= HTTPStatus.OK)
+    if request.path == os.getenv("HealthCheckURL"):
+        logger.info(f"alive avec {request}")
+        response = Response(status= HTTPStatus.OK)
+    else:
+        response = await handler(request)
+    return response
+
 
 def init_func(argv):
     """Create the routes to the different features."""
-    APP = web.Application(middlewares=[bot_telemetry_middleware, aiohttp_error_middleware])
+    APP = web.Application(middlewares=[alive, bot_telemetry_middleware, aiohttp_error_middleware])
     APP.router.add_post("/api/messages", messages)
     APP.router.add_route('GET', '/health_check', alive)
     return APP
