@@ -130,11 +130,11 @@ def on_prepare(request, response):
 @middleware
 async def alive(request, handler) -> Response:
     """Answer the ping to show the app is still healthy."""
+    print(request.path)
     if request.path == os.getenv("HealthCheckURL"):
         logger.info(f"alive avec {request}")
-        response = Response(status= HTTPStatus.OK)
-    else:
-        response = await handler(request)
+        return Response(status= HTTPStatus.OK)
+    response = await handler(request)
     return response
 
 
