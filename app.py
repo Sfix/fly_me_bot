@@ -129,7 +129,7 @@ async def alive(request, handler) -> Response:
     """Answer the ping to show the app is still healthy."""
     print(f"{request.path} --- {request.content_type}")
     if request.path == os.getenv("HealthCheckURL"):
-        logger.info(f"alive avec {request}")
+        logger.info(f"alive avec {request}.")
         return Response(status= HTTPStatus.OK)
     response = await handler(request)
     return response
