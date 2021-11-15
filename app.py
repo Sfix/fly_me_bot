@@ -122,15 +122,12 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
-def on_prepare(request, response):
-    pass 
-    # response.headers['My-Header'] = 'value'
 
 
 @middleware
 async def alive(request, handler) -> Response:
     """Answer the ping to show the app is still healthy."""
-    print(request.path)
+    print(f"{request.path} --- {request.content_type}")
     if request.path == os.getenv("HealthCheckURL"):
         logger.info(f"alive avec {request}")
         return Response(status= HTTPStatus.OK)
