@@ -31,6 +31,7 @@ logger.addHandler(
                         + f"{os.getenv('AppInsightsIngestionEndpoint')}"
                     )
 )
+logger.setLevel(level= logging.INFO)
 properties = {'custom_dimensions': {'key_1': 'value_1', 'key_2': 'value_2'}}
 
 # Use properties in logging statements
@@ -58,6 +59,10 @@ from botbuilder.integration.applicationinsights.aiohttp import (
 from config import DefaultConfig
 from dialogs import MainDialog, Specifying_dialog
 from bots import DialogAndWelcomeBot
+
+from opencensus.trace.samplers import ProbabilitySampler
+from opencensus.trace.tracer import Tracer
+
 
 from adapter_with_error_handler import AdapterWithErrorHandler
 from journey_specifier_recognizer import Journey_specifier_recognizer
@@ -88,6 +93,10 @@ TELEMETRY_CLIENT = ApplicationInsightsTelemetryClient(
     client_queue_size=10,
 )
 
+# Create a tracer for the dialogs that does not go well
+tracer = Tracer(sampler= ProbabilitySampler(1.0))
+
+
 # Create dialogs and Bot
 RECOGNIZER = Journey_specifier_recognizer(CONFIG)
 SPECIFYING_DIALOG = Specifying_dialog()
@@ -107,6 +116,8 @@ async def messages(req: Request) -> Response:
     Returns:
         Response: The message to send to the user.
     """
+    logger.info("Info - Entre avec un message - Sfix")
+    logger.warning("Warning - Entre dans messages - Sfix")
     # Main bot message handler.
     if "application/json" in req.headers["Content-Type"]:
         body = await req.json()
@@ -116,6 +127,10 @@ async def messages(req: Request) -> Response:
     activity = Activity().deserialize(body)
     auth_header = req.headers["Authorization"] if "Authorization" in req.headers else ""
 
+    # TODO See if kept because is creating a lot of data and it is expensive
+    if activity.has_content():
+        with tracer.span(name= "Msg") as span:
+            print(f"{activity.channel_data['clientActivityID']}|{activity.text}") 
     response = await ADAPTER.process_activity(activity, auth_header, BOT.on_turn)
     if response:
         return json_response(data=response.body, status=response.status)
