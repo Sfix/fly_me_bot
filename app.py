@@ -126,7 +126,7 @@ async def messages(req: Request) -> Response:
     if "application/json" in req.headers["Content-Type"]:
         body = await req.json()
     else:
-        logger.error(f"Request {req} header {req.headers["Content-Type"]} to messages")
+        logger.error(f"Request {req} header {req.headers['Content-Type']} to messages")
         return Response(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
     activity = Activity().deserialize(body)
