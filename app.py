@@ -26,10 +26,14 @@ logger = logging.getLogger(__name__)
 logger.addHandler(
                     AzureLogHandler(
                                     connection_string= "InstrumentationKey=" \
-                        + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
-                        +                               "IngestionEndpoint=" \
-                        + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+                        + f"{os.getenv('AppInsightsInstrumentationKey')}"
                     )
+                    # AzureLogHandler(
+                    #                 connection_string= "InstrumentationKey=" \
+                    #     + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
+                    #     +                               "IngestionEndpoint=" \
+                    #     + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+                    # )
 )
 logger.setLevel(level= logging.INFO)
 properties = {'custom_dimensions': {'key_1': 'value_1', 'key_2': 'value_2'}}
