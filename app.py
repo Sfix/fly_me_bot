@@ -120,12 +120,13 @@ async def messages(req: Request) -> Response:
     Returns:
         Response: The message to send to the user.
     """
-    logger.info("Info - Entre avec un message - Sfix")
-    logger.warning("Warning - Entre dans messages - Sfix")
+    # logger.info("Info - Entre avec un message - Sfix")
+    # logger.warning("Warning - Entre dans messages - Sfix")
     # Main bot message handler.
     if "application/json" in req.headers["Content-Type"]:
         body = await req.json()
     else:
+        logger.error(f"Request {req} header {req.headers["Content-Type"]} to messages")
         return Response(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
     activity = Activity().deserialize(body)
@@ -146,9 +147,9 @@ async def messages(req: Request) -> Response:
 @middleware
 async def alive(request, handler) -> Response:
     """Answer the ping to show the app is still healthy."""
-    print(f"{request.path} --- {request.content_type}")
+    # print(f"{request.path} --- {request.content_type}")
     if request.path == os.getenv("HealthCheckURL"):
-        logger.info(f"alive avec {request}.", extra= properties)
+        # logger.info(f"alive avec {request}.", extra= properties)
         return Response(status= HTTPStatus.OK)
     response = await handler(request)
     return response
