@@ -1,8 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import os
+from dotenv import load_dotenv
+# The notebook is not in the root of the apps. So we need to provide the path
+# to the ".env"
+load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Sciences - Ingenieur IA\\10e projet\\Deliverables')
+
 import logging
-from typing_extensions import TypeVarTuple
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -226,7 +231,7 @@ class MainDialog(ComponentDialog):
 
             properties['custom_dimensions']['success'] = True
             logger.info("Success", extra= properties)
-]
+
 
         prompt_message = "Thank you. Have a good day."
         return await step_context.replace_dialog(self.id, prompt_message)
