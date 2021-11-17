@@ -394,11 +394,12 @@ class Specifying_dialog(CancelAndHelpDialog):
         """Complete the interaction and end the dialog."""
         journey_details = step_context.options
         if step_context.result:
-            logger.info("End specification without error")
             return await step_context.end_dialog(journey_details)
 
         await step_context.context.send_activity(activity_or_text= "My appologies. I am still a trainee.")
-        properties["custom_dimensions"]['Ending'] = "\t".join(journey_details.log_utterances.utterance_list)
+        properties['custom_dimensions']['success'] = False
+        logger.info("Success", extra= properties)
+        properties["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
         logger.warning("End specification with error", extra= properties)
 
         return await step_context.end_dialog()

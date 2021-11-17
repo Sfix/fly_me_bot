@@ -169,7 +169,7 @@ if __name__ == "__main__":
         logger.info('Launch', extra=properties)
         web.run_app(APP, host=f"{os.environ['ServiceURL']}", port=CONFIG.PORT)
     except Exception as error:
-        properties = {'custom_dimensions': {'error': f'{error}'}}
+        properties = {'custom_dimensions': {'app': 'Fly Me Now', 'error': f'{error}'}}
         # Use properties in logging statements
         logger.error('Launch', extra=properties)
         raise error

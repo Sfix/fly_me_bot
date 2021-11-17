@@ -2,8 +2,24 @@
 # Licensed under the MIT License.
 
 import logging
-logger = logging.getLogger(name= "Specify Dialog")
+from typing_extensions import TypeVarTuple
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+logger = logging.getLogger(__name__)
+logger.addHandler(
+                    # AzureLogHandler(
+                    #                 connection_string= "InstrumentationKey=" \
+                    #     + f"{os.getenv('AppInsightsInstrumentationKey')}"
+                    # )
+                    AzureLogHandler(
+                                    connection_string= "InstrumentationKey=" \
+                        + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
+                        +                               "IngestionEndpoint=" \
+                        + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+                    )
+)
 logger.setLevel(level= logging.INFO)
+properties = {'custom_dimensions': {'module': 'main_dialog'}}
+
 
 from botbuilder.dialogs import (
     ComponentDialog,
@@ -207,6 +223,10 @@ class MainDialog(ComponentDialog):
             msg_txt += f" {result.max_budget['units']}."
             message = MessageFactory.text(msg_txt, msg_txt, InputHints.ignoring_input)
             await step_context.context.send_activity(message)
+
+            properties['custom_dimensions']['success'] = True
+            logger.info("Success", extra= properties)
+]
 
         prompt_message = "Thank you. Have a good day."
         return await step_context.replace_dialog(self.id, prompt_message)
