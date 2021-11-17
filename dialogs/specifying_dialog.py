@@ -23,6 +23,24 @@ from journey_specifier_recognizer import Journey_specifier_recognizer
 
 from helpers.luis_helper import LuisHelper
 
+import logging
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+logger = logging.getLogger(__name__)
+logger.addHandler(
+                    # AzureLogHandler(
+                    #                 connection_string= "InstrumentationKey=" \
+                    #     + f"{os.getenv('AppInsightsInstrumentationKey')}"
+                    # )
+                    AzureLogHandler(
+                                    connection_string= "InstrumentationKey=" \
+                        + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
+                        +                               "IngestionEndpoint=" \
+                        + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+                    )
+)
+logger.setLevel(level= logging.INFO)
+properties = {'custom_dimensions': {'module': 'specifying_dialog'}}
+
 
 class Specifying_dialog(CancelAndHelpDialog):
     """Journey specification implementation."""
@@ -95,6 +113,8 @@ class Specifying_dialog(CancelAndHelpDialog):
 
                                                 )
             )
+        properties["custom_dimensions"]['entry'] = 'already know destionation'
+        logger.info("Entry with known destionation", extra= properties)
 
         return await step_context.next(step_context.options.destination)
 
@@ -330,6 +350,10 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.confirm_step = step_context.result
 
             return await step_context.end_dialog(journey_details)
+
+        await step_context.context.send_activity(activity_or_text= "My appologies. I am still a trainee.")
+        properties["custom_dimensions"]['Ending'] = step_context.result
+        logger.warning("End specification with error", extra= properties)
 
         return await step_context.end_dialog()
 

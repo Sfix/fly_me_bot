@@ -36,10 +36,6 @@ logger.addHandler(
                     )
 )
 logger.setLevel(level= logging.INFO)
-properties = {'custom_dimensions': {'key_1': 'value_1', 'key_2': 'value_2'}}
-
-# Use properties in logging statements
-logger.warning('Sfix', extra=properties)
 
 from http import HTTPStatus
 
@@ -168,6 +164,12 @@ if __name__ == "__main__":
     APP = init_func(None)
 
     try:
+        properties = {'custom_dimensions': {'app': 'Fly Me Now', 'version': '0.9'}}
+        # Use properties in logging statements
+        logger.info('Launch', extra=properties)
         web.run_app(APP, host=f"{os.environ['ServiceURL']}", port=CONFIG.PORT)
     except Exception as error:
+        properties = {'custom_dimensions': {'error': f'{error}'}}
+        # Use properties in logging statements
+        logger.error('Launch', extra=properties)
         raise error
