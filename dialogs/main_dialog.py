@@ -208,7 +208,7 @@ class MainDialog(ComponentDialog):
             message = MessageFactory.text(msg_txt, msg_txt, InputHints.ignoring_input)
             await step_context.context.send_activity(message)
 
-        prompt_message = "Thsnk you. Have a good day."
+        prompt_message = "Thank you. Have a good day."
         return await step_context.replace_dialog(self.id, prompt_message)
 
     # We do not handle this kind of error.

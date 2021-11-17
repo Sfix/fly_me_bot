@@ -23,6 +23,12 @@ from journey_specifier_recognizer import Journey_specifier_recognizer
 
 from helpers.luis_helper import LuisHelper
 
+import os
+from dotenv import load_dotenv
+# The notebook is not in the root of the apps. So we need to provide the path
+# to the ".env"
+load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Sciences - Ingenieur IA\\10e projet\\Deliverables')
+
 import logging
 from opencensus.ext.azure.log_exporter import AzureLogHandler
 logger = logging.getLogger(__name__)
@@ -97,10 +103,16 @@ class Specifying_dialog(CancelAndHelpDialog):
 
     async def init_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Handle the entry to the dialog."""
-        Journey_details = step_context.options
+        journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         # Test if we enter from reload
         if step_context.options.destination is None:
+            journey_details.save_next_utterance = True
             return await step_context.prompt(
                                                 TextPrompt.__name__,
                                                 PromptOptions(
@@ -113,8 +125,6 @@ class Specifying_dialog(CancelAndHelpDialog):
 
                                                 )
             )
-        properties["custom_dimensions"]['entry'] = 'already know destionation'
-        logger.info("Entry with known destionation", extra= properties)
 
         return await step_context.next(step_context.options.destination)
 
@@ -122,6 +132,11 @@ class Specifying_dialog(CancelAndHelpDialog):
     async def destination_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompt for destination."""
         journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         if journey_details.destination is None:
             # Ask Luis what it thinks about it.
@@ -130,6 +145,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             )
             journey_details.merge(luis_result, replace_when_exist= False)
             if luis_result.destination is None:
+                journey_details.save_next_utterance = True
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
@@ -142,6 +158,11 @@ class Specifying_dialog(CancelAndHelpDialog):
     async def origin_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Prompt for origin city."""
         journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         # Check the number of words to guess if it worth asking
         # to decode the answer.
@@ -153,6 +174,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.merge(luis_result, replace_when_exist= False)
             result = luis_result.destination
             if result is None:
+                journey_details.save_next_utterance = True
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
@@ -166,6 +188,7 @@ class Specifying_dialog(CancelAndHelpDialog):
         journey_details.destination = result
         # Ask for the next
         if journey_details.origin is None:
+            journey_details.save_next_utterance = True
             return await step_context.prompt(
                 TextPrompt.__name__,
                 PromptOptions(
@@ -179,6 +202,11 @@ class Specifying_dialog(CancelAndHelpDialog):
         """Handle waterfall at origin is returned and departure date is checked."""
         # Handle the previous question...
         journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         # Check the number of words to guess if it worth asking LUIS
         # to decode the answer.
@@ -190,6 +218,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.merge(luis_result, replace_when_exist= False)
             result = luis_result.origin
             if result is None:
+                journey_details.save_next_utterance = True
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
@@ -208,6 +237,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             or
             self.is_ambiguous(journey_details.departure_date)
         ):
+            journey_details.save_next_utterance = True
             return await step_context.prompt(
                 DateTimePrompt.__name__,
                 PromptOptions(
@@ -221,6 +251,11 @@ class Specifying_dialog(CancelAndHelpDialog):
         """Handle waterfall at origin is returned and departure date is checked"""
         # Handle the previous question...
         journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         # Check the number of words to guess if it worth asking LUIS to decode
         # the answer.
@@ -248,6 +283,7 @@ class Specifying_dialog(CancelAndHelpDialog):
         # Check if we need to display the request for the budget before going
         # down to the next step of the waterfall
         if journey_details.return_date is None:
+            journey_details.save_next_utterance = True
             return await step_context.prompt(
                 DateTimePrompt.__name__,
                 PromptOptions(
@@ -262,6 +298,11 @@ class Specifying_dialog(CancelAndHelpDialog):
     ) -> DialogTurnResult:
         """Prompt for the max budget."""
         journey_details = step_context.options
+        if journey_details.save_next_utterance:
+            utterance = step_context.context.activity.text
+            journey_details.log_utterances.utterance_list.append(utterance)
+            journey_details.log_utterances.turn_number += 1
+            journey_details.save_next_utterance = False
 
         # # Check the number of words to guess if it worth asking LUIS to decode
         # # the answer.
@@ -287,6 +328,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.return_date = step_context.result[0].timex
 
         if journey_details.max_budget is None:
+            journey_details.save_next_utterance = True
             return await step_context.prompt(
                 TextPrompt.__name__,
                 PromptOptions(
@@ -312,6 +354,7 @@ class Specifying_dialog(CancelAndHelpDialog):
                 )
                 result = luis_result.max_budget
                 if result is None:
+                    journey_details.save_next_utterance = True
                     return await step_context.replace_dialog(
                                             dialog_id= Specifying_dialog.__name__,
                                             options= journey_details
@@ -335,8 +378,12 @@ class Specifying_dialog(CancelAndHelpDialog):
                                         + f" and be back "
                                         + f"for {journey_details.return_date}."
         )
-        msg = f"Your budget is {journey_details.max_budget['number']} "       \
-                            + f"{journey_details.max_budget['units']} top."
+        if 'units' in journey_details.max_budget:
+            msg = f"Your budget is {journey_details.max_budget['number']} "       \
+                                + f"{journey_details.max_budget['units']} top."
+        else:
+            msg = f"Your budget is {journey_details.max_budget['number']} euro."
+
 
         # Offer a YES/NO prompt.
         return await step_context.prompt(
@@ -345,14 +392,13 @@ class Specifying_dialog(CancelAndHelpDialog):
 
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Complete the interaction and end the dialog."""
+        journey_details = step_context.options
         if step_context.result:
-            journey_details = step_context.options
-            journey_details.confirm_step = step_context.result
-
+            logger.info("End specification without error")
             return await step_context.end_dialog(journey_details)
 
         await step_context.context.send_activity(activity_or_text= "My appologies. I am still a trainee.")
-        properties["custom_dimensions"]['Ending'] = step_context.result
+        properties["custom_dimensions"]['Ending'] = "\t".join(journey_details.log_utterances.utterance_list)
         logger.warning("End specification with error", extra= properties)
 
         return await step_context.end_dialog()

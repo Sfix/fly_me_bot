@@ -1,4 +1,25 @@
 """Handle the informations regarding the journey."""
+from botbuilder.core import ActivityHandler, TurnContext, StoreItem, MemoryStorage
+
+class  UtteranceLog(StoreItem):
+    """Class for storing a log of utterances (text of messages) as a list."""
+
+    def __init__(self):
+        """Initialise the class."""
+        super(UtteranceLog, self).__init__()
+        self.utterance_list = []
+        self._turn_number = 0
+        self.e_tag = "*"
+
+    @property
+    def turn_number(self):
+        """Define the getter."""
+        return self._turn_number
+
+    @turn_number.setter
+    def turn_number(self, value):
+        """Define the setter."""
+        self._turn_number = value
 
 
 class Journey_details:
@@ -10,6 +31,7 @@ class Journey_details:
         departure_date: str = None,
         return_date: str = None,
         max_budget: float = None,
+        log_utterances: UtteranceLog = None,
     ):
         """Init the class.
 
@@ -25,6 +47,8 @@ class Journey_details:
         self.departure_date = departure_date
         self.return_date = return_date
         self.max_budget = max_budget
+        self.log_utterances = UtteranceLog()
+        self.save_next_utterance : bool = True
 
     def merge(self, value: object, replace_when_exist: bool = False) -> None:
         """Merge current value with another."""

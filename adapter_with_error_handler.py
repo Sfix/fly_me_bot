@@ -28,6 +28,7 @@ class AdapterWithErrorHandler(BotFrameworkAdapter):
             # NOTE: In production environment, you should consider logging this to Azure
             #       application insights.
             print(f"\n [on_turn_error] unhandled error: {error}", file=sys.stderr)
+# Sfix
             traceback.print_exc()
 
             # Send a message to the user
