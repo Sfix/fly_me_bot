@@ -16,7 +16,7 @@ from botbuilder.core import IntentScore, TopIntent, TurnContext
 from journey_details import Journey_details
 
 from shared_code.constants.luis_app import LUIS_APPS
-
+from datetime import datetime as dt
 
 
 def top_intent(intents: Dict[LUIS_APPS, dict]) -> TopIntent:
@@ -87,7 +87,7 @@ class LuisHelper:
         # We have to decode the journey now
         if intent != LUIS_APPS.INTENTS[LUIS_APPS.INTENT_SPECIFY_JOURNEY_NAME]:
             return None, None
-        logger.info("Need to decode the intent.")
+        # logger.info("Need to decode the intent.")
 # TODO SERGE : Retrouver les donnees deja trouvees
         result = Journey_details()
 
@@ -99,21 +99,28 @@ class LuisHelper:
                         LUIS_APPS.ENTITIES["To place name"].replace(' ', '_'),
                         None
         )
+        from_place = recognizer_result.entities.get(
+                    LUIS_APPS.ENTITIES["From place name"].replace(' ', '_'),
+                    None
+        )
         if to_place is not None:
             for city in found_cities:
                 if city in to_place[0]:
                     result.destination = city
                     break
+        elif from_place is not None:
+            if from_place[0].lower() == turn_context.activity.text.lower():
+                result.destination = from_place[0]
 
-        from_place = recognizer_result.entities.get(
-                    LUIS_APPS.ENTITIES["From place name"].replace(' ', '_'),
-                    None
-        )
+
         if from_place is not None:
             for city in found_cities:
                 if city in from_place[0]:
                     result.origin = city
                     break
+        elif to_place is not None:
+            if to_place[0].lower() == turn_context.activity.text.lower():
+                result.origin = to_place[0]
 
 
         # This value will be a TIMEX. And we are only interested in a Date
@@ -121,17 +128,32 @@ class LuisHelper:
         # format that represents DateTime expressions that include some ambiguity.
         # e.g. missing a Year.
         date_entities = recognizer_result.entities.get("datetime", [])
-        if date_entities:
-            timex = date_entities[0]["timex"]
-
-            if timex:
-                datetime = timex[0].split("T")[0]
-
-                result.travel_date = datetime
-
-        else:
-            result.travel_date = None
-
+        from_date = recognizer_result.entities.get(
+                        LUIS_APPS.ENTITIES["From date name"].replace(' ', '_'),
+                        None
+        )
+        to_date = recognizer_result.entities.get(
+                    LUIS_APPS.ENTITIES["To date name"].replace(' ', '_'),
+                    None
+        )
+        if len(date_entities) == 1:
+            if date_entities[0]['type'] == 'date':
+                timex = date_entities[0]['timex']
+                if from_date is not None:
+                    result.departure_date = timex[0].split("T")[0]
+                if to_date is not None:
+                    result.return_date = timex[0].split("T")[0]
+        elif len(date_entities) == 2:
+            if date_entities[0]['type'] == 'date':
+                result.departure_date = date_entities[0]['timex'][0].split("T")[0]
+                result.return_date = date_entities[1]['timex'][0].split("T")[0]
+                if (
+                    dt.strptime(result.return_date, '%Y-%m-%d')
+                        - dt.strptime(result.departure_date, '%Y-%m-%d')
+                ).days < 0:
+                    tmp = result.return_date
+                    result.return_date = result.departure_date
+                    result.departure_date =  tmp
 
         budget_entity = recognizer_result.entities.get(
                                                         "money",

@@ -3,6 +3,7 @@
 """Flight booking dialog."""
 
 from datatypes_date_time.timex import Timex
+from datetime import datetime
 
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
 from botbuilder.dialogs.prompts import (
@@ -13,6 +14,7 @@ from botbuilder.dialogs.prompts import (
                                         PromptValidatorContext,
 )
 from botbuilder.core import MessageFactory, BotTelemetryClient, NullTelemetryClient
+from opencensus import metrics
 from journey_details import Journey_details
 
 from shared_code.constants.luis_app import LUIS_APPS
@@ -28,6 +30,40 @@ from dotenv import load_dotenv
 # The notebook is not in the root of the apps. So we need to provide the path
 # to the ".env"
 load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Sciences - Ingenieur IA\\10e projet\\Deliverables')
+
+# Add metric https://docs.microsoft.com/en-us/azure/azure-monitor/app/opencensus-python
+from opencensus.ext.azure import metrics_exporter
+from opencensus.stats import aggregation as aggregation_module, stats_recorder, view_manager
+from opencensus.stats import measure as measure_module
+from opencensus.stats import stats as stats_module
+from opencensus.stats import view as view_module
+from opencensus.tags import tag_map as tag_map_module
+
+stats = stats_module.stats
+view_manager = stats.view_manager
+stats_recorder = stats.stats_recorder
+not_ok_measure = measure_module.MeasureInt(
+                                            name= "specification_failure",
+                                            description= "Nombre de projets non satisfaisant",
+                                            unit= "click"
+)
+not_ok_view = view_module.View(
+                                name= "Fly Me Now",
+                                description= "Metric de Fly Me Now",
+                                columns= [],
+                                measure= not_ok_measure,
+                                aggregation= aggregation_module.CountAggregation(count= 0)
+)
+view_manager.register_view(not_ok_view)
+mmap = stats_recorder.new_measurement_map()
+tmap = tag_map_module.TagMap(tags= None)
+exporter_not_ok = metrics_exporter.new_metrics_exporter(
+                                    connection_string= "InstrumentationKey=" \
+                        + f"{os.getenv('AppInsightsInstrumentationKey')};"   \
+                        +                               "IngestionEndpoint=" \
+                        + f"{os.getenv('AppInsightsIngestionEndpoint')}"
+)
+view_manager.register_exporter(exporter= exporter_not_ok)
 
 import logging
 from opencensus.ext.azure.log_exporter import AzureLogHandler
@@ -143,6 +179,8 @@ class Specifying_dialog(CancelAndHelpDialog):
             intent, luis_result = await LuisHelper.execute_luis_query(
                 self.luis_recognizer, step_context.context
             )
+            if luis_result.destination == luis_result.origin:
+                luis_result.origin = None
             journey_details.merge(luis_result, replace_when_exist= False)
             if luis_result.destination is None:
                 journey_details.save_next_utterance = True
@@ -171,6 +209,8 @@ class Specifying_dialog(CancelAndHelpDialog):
             intent, luis_result = await LuisHelper.execute_luis_query(
                 self.luis_recognizer, step_context.context
             )
+            if luis_result.destination == luis_result.origin:
+                luis_result.origin = None
             journey_details.merge(luis_result, replace_when_exist= False)
             result = luis_result.destination
             if result is None:
@@ -215,6 +255,8 @@ class Specifying_dialog(CancelAndHelpDialog):
             intent, luis_result = await LuisHelper.execute_luis_query(
                 self.luis_recognizer, step_context.context
             )
+            if luis_result.destination == luis_result.origin:
+                luis_result.destination = None
             journey_details.merge(luis_result, replace_when_exist= False)
             result = luis_result.origin
             if result is None:
@@ -401,6 +443,14 @@ class Specifying_dialog(CancelAndHelpDialog):
         logger.info("Success", extra= properties)
         properties["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
         logger.warning("End specification with error", extra= properties)
+
+        mmap.measure_int_put(
+                                measure= not_ok_measure,
+                                value= 1
+        )
+        mmap.record(tags= tmap)
+        metrics = list(mmap.measure_to_view_map.get_metrics(datetime.utcnow()))
+        print(metrics[0].time_series[0].points[0])
 
         return await step_context.end_dialog()
 
