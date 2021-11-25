@@ -10,10 +10,3 @@ path_to_dialogs = os.path.join(
 )
 if path_to_dialogs not in sys.path:
     sys.path.append(path_to_dialogs)
-
-from dialogs.specifying_dialog import Specifying_dialog
-from dialogs.cancel_and_help_dialog import CancelAndHelpDialog
-from dialogs.date_resolver_dialog import DateResolverDialog
-from dialogs.main_dialog import MainDialog
-
-__all__ = ["Specifying_dialog", "CancelAndHelpDialog", "DateResolverDialog", "MainDialog"]

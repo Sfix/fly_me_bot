@@ -228,12 +228,13 @@ class MainDialog(ComponentDialog):
             msg_txt += f" {result.max_budget['units']}."
             message = MessageFactory.text(msg_txt, msg_txt, InputHints.ignoring_input)
             await step_context.context.send_activity(message)
-
             properties['custom_dimensions']['success'] = True
             logger.info("Success", extra= properties)
+        # else:
+        #     properties['custom_dimensions']['success'] = False
+        #     logger.info("Success", extra= properties)
 
-
-        prompt_message = "Thank you. Have a good day."
+        prompt_message = "I am not moving in case I can help."
         return await step_context.replace_dialog(self.id, prompt_message)
 
     # We do not handle this kind of error.

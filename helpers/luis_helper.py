@@ -144,16 +144,23 @@ class LuisHelper:
                 if to_date is not None:
                     result.return_date = timex[0].split("T")[0]
         elif len(date_entities) == 2:
-            if date_entities[0]['type'] == 'date':
-                result.departure_date = date_entities[0]['timex'][0].split("T")[0]
-                result.return_date = date_entities[1]['timex'][0].split("T")[0]
-                if (
-                    dt.strptime(result.return_date, '%Y-%m-%d')
-                        - dt.strptime(result.departure_date, '%Y-%m-%d')
-                ).days < 0:
-                    tmp = result.return_date
-                    result.return_date = result.departure_date
-                    result.departure_date =  tmp
+            try:
+                if date_entities[0]['type'] == 'date':
+                    result.departure_date = date_entities[0]['timex'][0].split("T")[0]
+                if date_entities[1]['type'] == 'date':
+                    result.return_date = date_entities[1]['timex'][0].split("T")[0]
+                    if (
+                        dt.strptime(result.return_date, '%Y-%m-%d')
+                            - dt.strptime(result.departure_date, '%Y-%m-%d')
+                    ).days < 0:
+                        tmp = result.return_date
+                        result.return_date = result.departure_date
+                        result.departure_date =  tmp
+            except:
+                if "XX" in result.return_date:
+                    result.return_date = None
+                if "XX" in result.departure_date:
+                    result.departure_date = None
 
         budget_entity = recognizer_result.entities.get(
                                                         "money",

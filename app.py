@@ -57,7 +57,8 @@ from botbuilder.integration.applicationinsights.aiohttp import (
 )
 
 from config import DefaultConfig
-from dialogs import MainDialog, Specifying_dialog
+from dialogs.main_dialog import MainDialog
+from dialogs.specifying_dialog import Specifying_dialog
 from bots import DialogAndWelcomeBot
 
 from opencensus.trace.samplers import ProbabilitySampler

@@ -10,8 +10,6 @@ logger.setLevel(level= logging.INFO)
 logger.info("Je suis on...")
 
 from dotenv import load_dotenv
-# The notebook is not in the root of the apps. So we need to provide the path
-# to the ".env"
 load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Sciences - Ingenieur IA\\10e projet\\Deliverables')
 
 
@@ -31,5 +29,9 @@ class DefaultConfig:
     APPINSIGHTS_INSTRUMENTATION_KEY = os.getenv(
         "AppInsightsInstrumentationKey", ""
     )
+    APPINSIGHTS_INGESTION_END_POINT = os.getenv(
+        "AppInsightsIngestionEndpoint", ""
+    )
+    
 
     logger.info(f"Vu APP_ID= {APP_ID} et APPINSIGHTS...KEY= {APPINSIGHTS_INSTRUMENTATION_KEY}")

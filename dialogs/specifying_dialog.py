@@ -18,7 +18,7 @@ from opencensus import metrics
 from journey_details import Journey_details
 
 from shared_code.constants.luis_app import LUIS_APPS
-from .cancel_and_help_dialog import CancelAndHelpDialog
+from dialogs.cancel_and_help_dialog import CancelAndHelpDialog
 # from .date_resolver_dialog import DateResolverDialog
 from journey_specifier_recognizer import Journey_specifier_recognizer
 
@@ -33,37 +33,82 @@ load_dotenv(dotenv_path= 'C:\\Users\\serge\\OneDrive\\Data Sciences\\Data Scienc
 
 # Add metric https://docs.microsoft.com/en-us/azure/azure-monitor/app/opencensus-python
 from opencensus.ext.azure import metrics_exporter
-from opencensus.stats import aggregation as aggregation_module, stats_recorder, view_manager
+from opencensus.stats import aggregation as aggregation_module
 from opencensus.stats import measure as measure_module
 from opencensus.stats import stats as stats_module
 from opencensus.stats import view as view_module
+from opencensus.tags import tag_key as tag_key_module
 from opencensus.tags import tag_map as tag_map_module
+from opencensus.tags import tag_value as tag_value_module
+
+# Create the measures
+measure_not_validated = measure_module.MeasureInt(
+                                            name= "result_not_validated",
+                                            description= "Distribution des projets non validés.",
+                                            unit= "By"
+)
+measure_validated = measure_module.MeasureInt(
+                                        name= "result_validated",
+                                        description= "Distribution des projets validés.",
+                                        unit= "By"
+)
+measure_repeat_question = measure_module.MeasureInt(
+                                            name= "question_ask_twice",
+                                            description= "Distribution des questions répétées.",
+                                            unit= "By"
+)
+stats_recorder = stats_module.stats.stats_recorder
+
+# Create the tag key
+key_method = tag_key_module.TagKey(name= "method")
+# Create the status key
+key_status = tag_key_module.TagKey(name= "status") 
+# Create the error key
+key_error = tag_key_module.TagKey(name= "error")
+
+not_validated_view =  view_module.View(
+                                        name= "Not validated",
+                                        description= "Nombre de spécifications non validées",
+                                        columns= [key_method, key_status, key_error],
+                                        measure= measure_not_validated,
+                                        aggregation= aggregation_module.CountAggregation(count= 0)
+)
+validated_view =  view_module.View(
+                                    name= "Validated",
+                                    description= "Nombre de spécifications validées",
+                                    columns= [key_method, key_status, key_error],
+                                    measure= measure_validated,
+                                    aggregation= aggregation_module.CountAggregation(count= 0)
+)
+repeat_question_view =  view_module.View(
+                                        name= "Repeated questions",
+                                        description= "Nombre de questions répétées",
+                                        columns= [key_method, key_status, key_error],
+                                        measure= measure_repeat_question,
+                                        aggregation= aggregation_module.CountAggregation(count= 0)
+)
 
 stats = stats_module.stats
 view_manager = stats.view_manager
-stats_recorder = stats.stats_recorder
-not_ok_measure = measure_module.MeasureInt(
-                                            name= "specification_failure",
-                                            description= "Nombre de projets non satisfaisant",
-                                            unit= "click"
-)
-not_ok_view = view_module.View(
-                                name= "Fly Me Now",
-                                description= "Metric de Fly Me Now",
-                                columns= [],
-                                measure= not_ok_measure,
-                                aggregation= aggregation_module.CountAggregation(count= 0)
-)
-view_manager.register_view(not_ok_view)
-mmap = stats_recorder.new_measurement_map()
-tmap = tag_map_module.TagMap(tags= None)
-exporter_not_ok = metrics_exporter.new_metrics_exporter(
+view_manager.register_view(view= not_validated_view)
+view_manager.register_view(view= validated_view)
+view_manager.register_view(view= repeat_question_view)
+
+mmap = stats.stats_recorder.new_measurement_map()
+tmap = tag_map_module.TagMap()
+
+
+exporter = metrics_exporter.new_metrics_exporter(
                                     connection_string= "InstrumentationKey=" \
-                        + f"{os.getenv('AppInsightsInstrumentationKey')};"   \
+                        + f"{os.getenv('AppInsightsInstrumentationKey')};"  \
                         +                               "IngestionEndpoint=" \
                         + f"{os.getenv('AppInsightsIngestionEndpoint')}"
 )
-view_manager.register_exporter(exporter= exporter_not_ok)
+view_manager.register_exporter(exporter= exporter)
+# Register the view
+
+
+
 
 import logging
 from opencensus.ext.azure.log_exporter import AzureLogHandler
@@ -147,7 +192,7 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.save_next_utterance = False
 
         # Test if we enter from reload
-        if step_context.options.destination is None:
+        if journey_details.destination is None:
             journey_details.save_next_utterance = True
             return await step_context.prompt(
                                                 TextPrompt.__name__,
@@ -161,6 +206,9 @@ class Specifying_dialog(CancelAndHelpDialog):
 
                                                 )
             )
+        # Handle the case of a single name for the city.
+        elif journey_details.origin == journey_details.destination:
+            journey_details. origin = None
 
         return await step_context.next(step_context.options.destination)
 
@@ -179,17 +227,20 @@ class Specifying_dialog(CancelAndHelpDialog):
             intent, luis_result = await LuisHelper.execute_luis_query(
                 self.luis_recognizer, step_context.context
             )
-            if luis_result.destination == luis_result.origin:
+            if luis_result.origin == luis_result.destination:
                 luis_result.origin = None
             journey_details.merge(luis_result, replace_when_exist= False)
             if luis_result.destination is None:
                 journey_details.save_next_utterance = True
+                # Log issue
+                properties_not_understood = properties.copy()
+                properties_not_understood["custom_dimensions"]['prompt'] = "destination"
+                properties_not_understood["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
+                logger.warning("Do Not understand", extra= properties_not_understood)
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
                 )
-            # define intent and luis_result without luis
-#            journey_details.destination = luis_result.destination
 
         return await step_context.next(journey_details.destination)
 
@@ -209,12 +260,17 @@ class Specifying_dialog(CancelAndHelpDialog):
             intent, luis_result = await LuisHelper.execute_luis_query(
                 self.luis_recognizer, step_context.context
             )
-            if luis_result.destination == luis_result.origin:
+            if luis_result.origin == luis_result.destination:
                 luis_result.origin = None
             journey_details.merge(luis_result, replace_when_exist= False)
             result = luis_result.destination
             if result is None:
                 journey_details.save_next_utterance = True
+                # Log issue
+                properties_not_understood = properties.copy()
+                properties_not_understood["custom_dimensions"]['prompt'] = "destination"
+                properties_not_understood["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
+                logger.warning("Do Not understand", extra= properties_not_understood)
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
@@ -261,6 +317,11 @@ class Specifying_dialog(CancelAndHelpDialog):
             result = luis_result.origin
             if result is None:
                 journey_details.save_next_utterance = True
+                # Log issue
+                properties_not_understood = properties.copy()
+                properties_not_understood["custom_dimensions"]['prompt'] = "origin"
+                properties_not_understood["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
+                logger.warning("Do Not understand", extra= properties_not_understood)
                 return await step_context.replace_dialog(
                                         dialog_id= Specifying_dialog.__name__,
                                         options= journey_details
@@ -299,26 +360,6 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.log_utterances.turn_number += 1
             journey_details.save_next_utterance = False
 
-        # Check the number of words to guess if it worth asking LUIS to decode
-        # the answer.
-        # if "definite" not in Timex(step_context.result[0].timex.split("T")[0]).types:
-        # # Ask Luis what it thinks about it.
-        #     intent, luis_result = await LuisHelper.execute_luis_query(
-        #         self.luis_recognizer, step_context.context
-        #     )
-        #     result = luis_result.departure_date
-        #     if result is None or self.is_ambiguous(result):
-        #         return await step_context.replace_dialog(
-        #                                 dialog_id= Specifying_dialog.__name__,
-        #                                 options= journey_details
-        #         )
-        # else:
-        #     # define intent and luis_result without luis
-        #     intent = LUIS_APPS.INTENTS[LUIS_APPS.INTENT_SPECIFY_JOURNEY_NAME]
-        #     result = Timex(step_context.result)
-        # # If we are here, we consider that the origin point is legit
-        # journey_details.departure_date = result
-        # Due to the validation we have a date
         if journey_details.departure_date is None:
             journey_details.departure_date = step_context.result[0].timex
 
@@ -346,26 +387,6 @@ class Specifying_dialog(CancelAndHelpDialog):
             journey_details.log_utterances.turn_number += 1
             journey_details.save_next_utterance = False
 
-        # # Check the number of words to guess if it worth asking LUIS to decode
-        # # the answer.
-        # if "definite" not in Timex(step_context.result).types:
-        # # Ask Luis what it thinks about it.
-        #     intent, luis_result = await LuisHelper.execute_luis_query(
-        #         self.luis_recognizer, step_context.context
-        #     )
-        #     result = luis_result.return_date
-        #     if result is None or self.is_ambiguous(result):
-        #         return await step_context.replace_dialog(
-        #                                 dialog_id= Specifying_dialog.__name__,
-        #                                 options= journey_details
-        #         )
-        # else:
-        #     # define intent and luis_result without luis
-        #     intent = LUIS_APPS.INTENTS[LUIS_APPS.INTENT_SPECIFY_JOURNEY_NAME]
-        #     result = Timex(step_context.result)
-        # # Capture the value.
-        # journey_details.departure_date = result
-        # Thanks to the validation we have a right format
         if journey_details.return_date is None:
             journey_details.return_date = step_context.result[0].timex
 
@@ -397,6 +418,11 @@ class Specifying_dialog(CancelAndHelpDialog):
                 result = luis_result.max_budget
                 if result is None:
                     journey_details.save_next_utterance = True
+                    # Log issue
+                    properties_not_understood = properties.copy()
+                    properties_not_understood["custom_dimensions"]['prompt'] = "budget"
+                    properties_not_understood["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
+                    logger.warning("Do Not understand", extra= properties_not_understood)
                     return await step_context.replace_dialog(
                                             dialog_id= Specifying_dialog.__name__,
                                             options= journey_details
@@ -439,18 +465,26 @@ class Specifying_dialog(CancelAndHelpDialog):
             return await step_context.end_dialog(journey_details)
 
         await step_context.context.send_activity(activity_or_text= "My appologies. I am still a trainee.")
-        properties['custom_dimensions']['success'] = False
-        logger.info("Success", extra= properties)
-        properties["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
-        logger.warning("End specification with error", extra= properties)
+        properties_success = properties.copy()
+        properties_success['custom_dimensions']['success'] = False
+        logger.info("Success", extra= properties_success)
+        properties_not_validated = properties.copy()
+        properties_not_validated["custom_dimensions"]['messages'] = "\t".join(journey_details.log_utterances.utterance_list)
+        logger.warning("End specification with error", extra= properties_not_validated)
 
-        mmap.measure_int_put(
-                                measure= not_ok_measure,
-                                value= 1
-        )
-        mmap.record(tags= tmap)
-        metrics = list(mmap.measure_to_view_map.get_metrics(datetime.utcnow()))
-        print(metrics[0].time_series[0].points[0])
+        # Record the stats
+        mmap.measure_int_put(measure= measure_not_validated, value= 1)
+        tmap.insert(key= key_method, value= tag_value_module.TagValue("Success"))
+        tmap.insert(key= key_status, value= tag_value_module.TagValue("Ok"))
+        mmap.record(tmap)
+
+        # mmap.measure_int_put(
+        #                         measure= not_ok_measure,
+        #                         value= 1
+        # )
+        # mmap.record(tags= tmap)
+        # metrics = list(mmap.measure_to_view_map.get_metrics(datetime.utcnow()))
+        # print(metrics[0].time_series[0].points[0])
 
         return await step_context.end_dialog()
 
@@ -476,6 +510,12 @@ class Specifying_dialog(CancelAndHelpDialog):
             else:
                 msg = ', '.join(split_msg[:-2]) + " and" + split_msg[-2] + "."
             await prompt_context.context.send_activity(msg)
+                # Log issue
+        properties_not_understood = properties.copy()
+        properties_not_understood["custom_dimensions"]['prompt'] = "date"
+        properties_not_understood["custom_dimensions"]['messages'] = prompt_context.context.activity.text
+        logger.warning("Do Not understand", extra= properties_not_understood)
+
         await prompt_context.context.send_activity('You can use the format YYYY-MM-DD')
         return False
 
